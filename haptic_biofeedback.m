@@ -105,6 +105,7 @@ volume_br = 100;
 lowlimit_hr = 50;
 limit_br = 5;
 BH_Data = [];
+simple_bh_data = [];
 start_time = cputime;
 hr_array_length = 0;
 br_array_length = 0;
@@ -987,19 +988,24 @@ disp('start');
         delete(instrfindall);
         disp('exit');
         BH_Data
+        simple_bh_data
         time_logs
         if ~exist(fullfile(participant_id.String), 'dir')
             mkdir(participant_id.String)
         end
         dlmwrite(strcat(participant_id.String, '/', participant_id.String,...
-            '_', experiment_state.String, '_BioHarnessData.csv'), BH_Data,...
+            '_', experiment_state.String, '_MatlabData.csv'), BH_Data,...
             'delimiter',',');
+        dlmwrite(strcat(participant_id.String, '/', participant_id.String,...
+            '_', experiment_state.String, '_simpleBioharnessData.csv'), ...
+            simple_bh_data, 'delimiter', ',');
         dlmwrite(strcat(participant_id.String, '/', participant_id.String,...
             '_', experiment_state.String, '_time_logs.csv'), time_logs,...
             'delimiter',',');
     end
 
     function Bioharness_OUTPUT(~,~)
+        simple_bioharness_data = [cputime-start_time hr_data(end) br_data(end) hrv_data(end)];
         tempdata=[];
         if(hrbox.Value==1) %if box to activate heart rate is checked
             if(isempty(hr_data)==0) %if array storing heart rate is not empty
@@ -1007,7 +1013,7 @@ disp('start');
                 if(count*0.01> duration) %check is current beat is being played
                     bpm = hr_data(end); %get most recent heartbeat
                     if(bpm~=0)
-                        tempdata = [hr_data(end) br_data(end)];
+                        tempdata = [cputime-start_time hr_data(end) br_data(end)];
                         %%%%%%%%%%get data from the GUI input boxes%%%%%%%
                         percent_bpm = str2double(toru.String)/100;
                         freq_hr = str2double(freqbox_hr.String);
@@ -1022,17 +1028,17 @@ disp('start');
                                 bpm = percent_bpm*bpm;
                                 duration = Sound_Warble(bpm, getPosition(h), freq_hr, volume_hr);
                                 disp(bpm)
-                                tempdata = [tempdata bpm -1 cputime-start_time];
+                                tempdata = [tempdata bpm -1];
                             elseif(percent_bpm*bpm <= lowlimit_hr)
                                 duration = Sound_Warble(lowlimit_hr, getPosition(h), freq_hr, volume_hr);
-                                disp('we have hit the limit')
+                                disp('bpm lower limit hit:')
                                 disp(lowlimit_hr)
-                                tempdata = [tempdata lowlimit_hr -1 cputime-start_time];
+                                tempdata = [tempdata lowlimit_hr -1];
                             elseif(percent_bpm*bpm >= uplimit_hr)
                                 duration = Sound_Warble(uplimit_hr, getPosition(h), freq_hr, volume_hr);
-                                disp('we have hit the limit')
+                                disp('bpm higher limit hit:')
                                 disp(uplimit_hr)
-                                tempdata = [tempdata uplimit_hr -1 cputime-start_time];
+                                tempdata = [tempdata uplimit_hr -1];
                             end
                         else % if const box is checked get last bpm and use that as the const
                             if(last_const_hr == 0)
@@ -1041,7 +1047,7 @@ disp('start');
                             last_const_hr = 1;
                             const_bpm = percent_bpm*bpm_const_hr;
                             duration = Sound_Warble(const_bpm, getPosition(h), freq_hr, volume_hr);
-                            tempdata = [tempdata const_bpm -1 cputime-start_time];
+                            tempdata = [tempdata const_bpm -1];
                         end
                     end
                     count = 0;
@@ -1053,7 +1059,7 @@ disp('start');
                 if(count*0.01> duration) %check is current beat is being played
                     bpm = br_data(end); %get most recent heartbeat
                     if(bpm~=0)
-                        tempdata = [hr_data(end) br_data(end)];
+                        tempdata = [cputime-start_time hr_data(end) br_data(end)];
                         %%%%%%%%%%get data from the GUI input boxes%%%%%%%
                         percent_bpm = str2double(toru.String)/100;
                         freq_br = str2double(freqbox_br.String);
@@ -1068,17 +1074,17 @@ disp('start');
                                 bpm = percent_bpm*bpm;
                                 duration = Sound_Warble(bpm, getPosition(b), freq_br, volume_br);
                                 disp(bpm)
-                                tempdata = [tempdata -1 bpm cputime-start_time];
+                                tempdata = [tempdata -1 bpm];
                             elseif(percent_bpm*bpm <= lowlimit_br)
                                 duration = Sound_Warble(lowlimit_br, getPosition(b), freq_br, volume_br);
-                                disp('we have hit the limit')
+                                disp('bpm lower limit hit:')
                                 disp(lowlimit_br)
-                                tempdata = [tempdata -1 lowlimit_br cputime-start_time];
+                                tempdata = [tempdata -1 lowlimit_br];
                             elseif(percent_bpm*bpm >= uplimit_br)
                                 duration = Sound_Warble(uplimit_br, getPosition(b), freq_br, volume_br);
-                                disp('we have hit the limit')
+                                disp('bpm higher limit hit:')
                                 disp(uplimit_br)
-                                tempdata = [tempdata -1 uplimit_br cputime-start_time];
+                                tempdata = [tempdata -1 uplimit_br];
                             end
                         else % if const box is checked get last bpm and use that as the const
                             if(last_const_br == 0)
@@ -1087,7 +1093,7 @@ disp('start');
                             last_const_br = 1;
                             const_bpm = percent_bpm*bpm_const_br;
                             duration = Sound_Warble(const_bpm, getPosition(b), freq_br, volume_br);
-                            tempdata = [tempdata -1 const_bpm cputime-start_time];
+                            tempdata = [tempdata -1 const_bpm];
                         end
                     end
                     count = 0;
@@ -1095,7 +1101,7 @@ disp('start');
             end
         else %if no boxes are checked, input -1 as the outputs for both br and hr
             if(numel(hr_data)>hr_array_length || numel(br_data)>br_array_length)
-                tempdata = [hr_data(end) br_data(end) hrv_data(end) -1 cputime-start_time];
+                tempdata = [cputime-start_time hr_data(end) br_data(end) -1 -1];
                 hr_array_length = numel(hr_data);
                 br_array_length = numel(br_data);
             end
@@ -1103,7 +1109,8 @@ disp('start');
         end
         if(isempty(tempdata) == 0)
              BH_Data = [BH_Data; tempdata];
+             simple_bh_data = [simple_bh_data; simple_bioharness_data];
              tempdata = [];    
-         end
+        end
     end
 end
